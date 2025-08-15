@@ -135,7 +135,7 @@ def smart_home_ai(user_msg):
     
     try:
         # 使用 Gemini 2.5 Pro 模型
-        model = genai.GenerativeModel("gemini-2.5-pro-preview")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content([sys_prompt, user_msg])
         return json.loads(response.text.strip())
     except json.JSONDecodeError:
@@ -153,7 +153,7 @@ def smart_home_ai(user_msg):
     except Exception as e:
         # 如果 2.5 Pro 不可用，嘗試其他模型
         try:
-            model = genai.GenerativeModel("gemini-pro")
+            model = genai.GenerativeModel("gemini-2.5-flash-lite")
             response = model.generate_content([sys_prompt, user_msg])
             return json.loads(response.text.strip())
         except:
