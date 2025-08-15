@@ -115,7 +115,7 @@ def tapo_action_with_light_fallback(action):
 
 # ====AI智能理解====
 def smart_home_ai(user_msg):
-    """使用 Gemini 理解用戶意圖"""
+    """使用 Gemini 2.5 Pro 理解用戶意圖"""
     if not GEMINI_API_KEY:
         return {"type": "unknown", "reply": "AI服務未設定"}
     
@@ -134,13 +134,30 @@ def smart_home_ai(user_msg):
 """
     
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        # 使用 Gemini 2.5 Pro 模型
+        model = genai.GenerativeModel("gemini-2.5-pro-preview")
         response = model.generate_content([sys_prompt, user_msg])
         return json.loads(response.text.strip())
     except json.JSONDecodeError:
-        return {"type": "unknown", "reply": f"AI回覆：{response.text if 'response' in locals() else user_msg}"}
+        try:
+            # 如果 JSON 解析失敗，嘗試從回應中提取 JSON
+            text = response.text if 'response' in locals() else user_msg
+            if "{" in text and "}" in text:
+                start = text.find("{")
+                end = text.rfind("}") + 1
+                return json.loads(text[start:end])
+            else:
+                return {"type": "unknown", "reply": text}
+        except:
+            return {"type": "unknown", "reply": f"AI回覆：{text}"}
     except Exception as e:
-        return {"type": "unknown", "reply": f"AI處理錯誤: {str(e)}"}
+        # 如果 2.5 Pro 不可用，嘗試其他模型
+        try:
+            model = genai.GenerativeModel("gemini-pro")
+            response = model.generate_content([sys_prompt, user_msg])
+            return json.loads(response.text.strip())
+        except:
+            return {"type": "unknown", "reply": f"AI服務暫時無法使用: {str(e)}"}
 
 # ====其他功能====
 def weather_func(loc="台中市清水區"):
