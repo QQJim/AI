@@ -21,12 +21,12 @@ handler = WebhookHandler(CHANNEL_SECRET)
 def callback():
     signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
+    print("LINE Webhook event:", body)  # debug用
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
     return "OK"
-
 # 處理用戶傳來的訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text(event):
