@@ -3,5 +3,3 @@ gunicorn
 line-bot-sdk
 openai
 requests
-ultralytics
-ptapo
