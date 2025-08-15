@@ -33,69 +33,88 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # ====家電控制====
-def tapo_action(action):
-    """控制 Tapo 設備"""
-    if not all([TAPO_USER, TAPO_PASSWORD, TAPO_IP]):
-        return "Tapo 設備未設定"
-    
-    try:
-        from tapo import ApiClient
-        api = ApiClient(TAPO_USER, TAPO_PASSWORD)
-        results = []
-        
-        def ctrl(ip, cmd):
-            if not ip:
-                return "設備IP未設定"
-            device = api.child(ip)
-            if cmd == "snapshot":
-                snap = device.get_snapshot()
-                with open("snapshot.jpg", "wb") as f:
-                    f.write(snap)
-                return "已拍照"
-            elif cmd == "on":
-                device.turn_on()
-                return "開啟"
-            elif cmd == "off":
-                device.turn_off()
-                return "關閉"
-            elif cmd == "left":
-                device.motor.left()
-                return "往左"
-            elif cmd == "right":
-                device.motor.right()
-                return "往右"
-            elif cmd == "up":
-                device.motor.up()
-                return "上"
-            elif cmd == "down":
-                device.motor.down()
-                return "下"
-            elif cmd.startswith("goto_preset_"):
-                idx = int(cmd.split("_")[-1])
-                device.go_to_preset(idx)
-                return f"到預設點{idx}"
-            return "未支援指令"
+from pytapo import Tapo
+from tapo import ApiClient
 
-        # 處理複合指令
-        for act in action.split('+'):
+def get_cam():
+    # C210 攝影機
+    return Tapo(TAPO_IP, TAPO_USER, TAPO_PASSWORD)
+
+def get_iot_device(host):
+    # 插座/燈具
+    client = ApiClient(TAPO_USER, TAPO_PASSWORD)
+    return client.get_device(host)
+
+def cam_ctrl(cmd):
+    cam = get_cam()
+    if cmd == "snapshot":
+        snap = cam.getSnapshot()
+        with open("snapshot.jpg", "wb") as f:
+            f.write(snap)
+        return "已拍照"
+    elif cmd == "left":
+        cam.moveMotor(-10, 0)
+        return "往左"
+    elif cmd == "right":
+        cam.moveMotor(10, 0)
+        return "往右"
+    elif cmd == "up":
+        cam.moveMotor(0, 10)
+        return "上"
+    elif cmd == "down":
+        cam.moveMotor(0, -10)
+        return "下"
+    elif cmd.startswith("goto_preset_"):
+        idx = int(cmd.split("_")[-1])
+        presets = cam.getPresets()
+        target = None
+        for p in presets.get("preset", []):
+            if str(p.get("name")) == str(idx) or str(p.get("id")) == str(idx):
+                target = p
+                break
+        if not target:
+            return f"找不到預設點{idx}"
+        cam.setPreset(target.get("name") or target.get("id"))
+        return f"到預設點{idx}"
+    else:
+        return "未支援相機指令"
+
+def iot_ctrl(which, onoff):
+    host = LAMP_IP if which == "lamp" else PLUG_IP
+    dev = get_iot_device(host)
+    try:
+        if onoff == "on":
+            getattr(dev, "on", getattr(dev, "turn_on"))()
+            return "開啟"
+        else:
+            getattr(dev, "off", getattr(dev, "turn_off"))()
+            return "關閉"
+    except AttributeError:
+        return "裝置方法不支援"
+
+def tapo_action(action):
+    try:
+        results = []
+        parts = [a.strip().lower() for a in action.split("+") if a.strip()]
+        last_type = None
+        for act in parts:
             if act in ["snapshot", "left", "right", "up", "down"] or act.startswith("goto_preset_"):
-                results.append(ctrl(TAPO_IP, act))
+                results.append(cam_ctrl(act))
+                last_type = "cam"
             elif act in ["on", "off"]:
-                if "lamp" in action.lower():
-                    results.append(f"燈:{ctrl(LAMP_IP, act)}")
-                elif "plug" in action.lower():
-                    results.append(f"插座:{ctrl(PLUG_IP, act)}")
-                else:
-                    results.append(f"插座:{ctrl(PLUG_IP, act)}")
+                which = "plug"
+                if last_type in ["lamp", "plug"]:
+                    which = last_type
+                results.append(f"{which}:" + iot_ctrl(which, act))
+                last_type = None
+            elif act in ["lamp", "plug"]:
+                last_type = act
             else:
                 results.append(f"未知指令:{act}")
-        
-        return "; ".join(results)
+        return "; ".join(results) if results else "無有效指令"
     except Exception as e:
         return f"設備控制錯誤: {str(e)}"
-
-def check_snapshot_brightness(img_path="snapshot.jpg", threshold=50):
-    """檢查快照亮度"""
+        def check_snapshot_brightness(img_path="snapshot.jpg", threshold=50):
     try:
         img = Image.open(img_path).convert("L")
         avg = sum(img.getdata()) / (img.width * img.height)
@@ -104,13 +123,13 @@ def check_snapshot_brightness(img_path="snapshot.jpg", threshold=50):
         return True
 
 def tapo_action_with_light_fallback(action):
-    """帶亮度自動補償的設備控制"""
     result = tapo_action(action)
     if "snapshot" in action and "已拍照" in result:
+        # 判斷拍照後亮度，如太暗，自動開燈再拍
         if not check_snapshot_brightness("snapshot.jpg"):
-            lamp_result = tapo_action("on")
-            snapshot_result = tapo_action("snapshot")
-            result += f" | 太暗自動開燈重拍: {lamp_result}, {snapshot_result}"
+            tapo_action("lamp+on")
+            tapo_action("snapshot")
+            result += " | 太暗自動開燈重拍"
     return result
 
 # ====AI智能理解====
