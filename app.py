@@ -12,7 +12,7 @@ app = Flask(__name__)
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
 CHANNEL_SECRET = os.getenv("CHANNEL_SECRET", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-MAC_SERVER_URL = os.getenv("MAC_SERVER_URL", "")  # e.g. http://192.168.1.100:8711
+MAC_SERVER_URL = os.getenv("http://172.23.204.137:8711", "")  # e.g. http://192.168.1.100:8711
 
 if not CHANNEL_ACCESS_TOKEN or not CHANNEL_SECRET or not OPENAI_API_KEY or not MAC_SERVER_URL:
     raise RuntimeError("環境變數: CHANNEL_ACCESS_TOKEN, CHANNEL_SECRET, OPENAI_API_KEY, MAC_SERVER_URL 必填！")
