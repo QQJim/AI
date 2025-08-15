@@ -12,9 +12,9 @@ CHANNEL_SECRET = os.getenv("60333a4cb313d06854e23aad76883668", "")
 
 if not CHANNEL_ACCESS_TOKEN or not CHANNEL_SECRET:
     raise RuntimeError("請設定環境變數 CHANNEL_ACCESS_TOKEN 與 CHANNEL_SECRET")
-
-line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(CHANNEL_SECRET)
+import os
+CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
+CHANNEL_SECRET = os.getenv("CHANNEL_SECRET", "")
 
 # LINE Webhook 入口
 @app.route("/callback", methods=["POST"])
