@@ -1,3 +1,6 @@
 Flask
 gunicorn
 line-bot-sdk
+openai
+ptapo
+boto3
