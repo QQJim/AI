@@ -2,5 +2,6 @@ Flask
 gunicorn
 line-bot-sdk
 openai
+requests
+ultralytics
 ptapo
-boto3
