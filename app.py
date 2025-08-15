@@ -114,7 +114,8 @@ def tapo_action(action):
         return "; ".join(results) if results else "無有效指令"
     except Exception as e:
         return f"設備控制錯誤: {str(e)}"
-        def check_snapshot_brightness(img_path="snapshot.jpg", threshold=50):
+
+def check_snapshot_brightness(img_path="snapshot.jpg", threshold=50):
     try:
         img = Image.open(img_path).convert("L")
         avg = sum(img.getdata()) / (img.width * img.height)
@@ -125,7 +126,6 @@ def tapo_action(action):
 def tapo_action_with_light_fallback(action):
     result = tapo_action(action)
     if "snapshot" in action and "已拍照" in result:
-        # 判斷拍照後亮度，如太暗，自動開燈再拍
         if not check_snapshot_brightness("snapshot.jpg"):
             tapo_action("lamp+on")
             tapo_action("snapshot")
