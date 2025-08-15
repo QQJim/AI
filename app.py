@@ -3,8 +3,8 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageSendMessage
 import requests
-import openai
 import os
+from openai import OpenAI
 
 # LINE/OPENAI config
 app = Flask(__name__)
@@ -12,14 +12,14 @@ app = Flask(__name__)
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
 CHANNEL_SECRET = os.getenv("CHANNEL_SECRET", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-MAC_SERVER_URL = ("http://172.23.204.137:8711", "")  
+MAC_SERVER_URL = os.getenv("MAC_SERVER_URL", "http://172.23.204.137:8711")
 
 if not CHANNEL_ACCESS_TOKEN or not CHANNEL_SECRET or not OPENAI_API_KEY or not MAC_SERVER_URL:
     raise RuntimeError("環境變數: CHANNEL_ACCESS_TOKEN, CHANNEL_SECRET, OPENAI_API_KEY, MAC_SERVER_URL 必填！")
 
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -40,13 +40,18 @@ def handle_text(event):
         "（不需回中文描述）\n\n用戶訊息: " + user_msg
     )
     try:
-        gpt_rsp = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[{"role": "system", "content": prompt}]
-        ).choices[0].message.content.strip().lower()
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": user_msg}
+            ]
+        )
+        gpt_rsp = response.choices[0].message.content.strip().lower()
     except Exception as e:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI理解錯誤：" + str(e)))
         return
+
     # call Mac 伺服器做抓圖動作
     try:
         act_rsp = requests.post(f"{MAC_SERVER_URL}/yolo_action", json={"action": gpt_rsp}, timeout=30)
