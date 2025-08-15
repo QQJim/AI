@@ -1,5 +1,6 @@
-Flask
-gunicorn
+flask
 line-bot-sdk
-openai
 requests
+pillow
+tapo
+google-generativeai
