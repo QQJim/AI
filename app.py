@@ -7,8 +7,8 @@ import os
 app = Flask(__name__)
 
 # 從 Render (或 Heroku) 設定的環境變數取得金鑰 —— 只寫一次即可
-CHANNEL_ACCESS_TOKEN = os.getenv("d8GK+ttA8ZeWjoAQK4ovyRSrilxt8Hwwua3lhEt8oFPZJApBaU/tF+iUbnigrWP9mNuaPSIJl0KoW+zKyRmEj5qzz90t5xwwf08UqVtD8qhNpbGX9aA4xI00Rvy1zjtURrMQPren4SS2xl9HLMqd/gdB04t89/1O/w1cDnyilFU=", "")
-CHANNEL_SECRET = os.getenv("60333a4cb313d06854e23aad76883668", "")
+CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
+CHANNEL_SECRET = os.getenv("CHANNEL_SECRET", "")
 
 if not CHANNEL_ACCESS_TOKEN or not CHANNEL_SECRET:
     raise RuntimeError("請設定環境變數 CHANNEL_ACCESS_TOKEN 與 CHANNEL_SECRET")
