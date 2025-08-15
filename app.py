@@ -6,27 +6,28 @@ import os
 
 app = Flask(__name__)
 
-# 從 Render (或 Heroku) 設定的環境變數取得金鑰
+# 從 Render (或 Heroku) 設定的環境變數取得金鑰 —— 只寫一次即可
 CHANNEL_ACCESS_TOKEN = os.getenv("d8GK+ttA8ZeWjoAQK4ovyRSrilxt8Hwwua3lhEt8oFPZJApBaU/tF+iUbnigrWP9mNuaPSIJl0KoW+zKyRmEj5qzz90t5xwwf08UqVtD8qhNpbGX9aA4xI00Rvy1zjtURrMQPren4SS2xl9HLMqd/gdB04t89/1O/w1cDnyilFU=", "")
 CHANNEL_SECRET = os.getenv("60333a4cb313d06854e23aad76883668", "")
 
 if not CHANNEL_ACCESS_TOKEN or not CHANNEL_SECRET:
     raise RuntimeError("請設定環境變數 CHANNEL_ACCESS_TOKEN 與 CHANNEL_SECRET")
-import os
-CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
-CHANNEL_SECRET = os.getenv("CHANNEL_SECRET", "")
+
+line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(CHANNEL_SECRET)
 
 # LINE Webhook 入口
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
-    print("LINE Webhook event:", body)  # debug用
+    print("LINE Webhook event:", body)  # debug
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
     return "OK"
+
 # 處理用戶傳來的訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text(event):
@@ -41,7 +42,7 @@ def handle_text(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         
     elif text == "監控":
-        img_url = "https://placekitten.com/640/360"   # 這裡之後可換成你的監控快照網址！
+        img_url = "https://placekitten.com/640/360"   # 這裡以後再換你的監控快照網址！
         line_bot_api.reply_message(
             event.reply_token,
             ImageSendMessage(
